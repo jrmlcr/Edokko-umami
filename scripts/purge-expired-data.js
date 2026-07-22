@@ -13,6 +13,7 @@
 import 'dotenv/config';
 import chalk from 'chalk';
 import { Client } from 'pg';
+import { pathToFileURL } from 'node:url';
 
 const RETENTION_MONTHS = 24;
 
@@ -64,6 +65,6 @@ async function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
