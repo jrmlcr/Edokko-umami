@@ -106,3 +106,20 @@ export function stripPort(ip?: string | null) {
 
   return ip;
 }
+
+/**
+ * The address without its last byte, or for IPv6 its first 48 bits alone: the CNIL's condition for audience
+ * measurement without consent (Edokko #322). Used for the visit identifier only, after the location is worked out.
+ */
+export function truncateIp(ip?: string | null): string {
+  // A valid address goes as it is: stripPort reads the colons of a mapped IPv6 address as a port.
+  const clean = ip && ipaddr.isValid(ip) ? ip : stripPort(ip);
+  if (!clean || !ipaddr.isValid(clean)) return '';
+  const parsed = ipaddr.process(clean);
+  if (parsed.kind() === 'ipv4') {
+    const [a, b, c] = parsed.toByteArray();
+    return `${a}.${b}.${c}.0`;
+  }
+  const parts = (parsed as ipaddr.IPv6).parts;
+  return new ipaddr.IPv6([parts[0], parts[1], parts[2], 0, 0, 0, 0, 0]).toString();
+}
