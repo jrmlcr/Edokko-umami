@@ -1,16 +1,20 @@
 'use client';
 import { Column, Dialog, Modal, type ModalProps } from '@umami/react-zen';
+import { useEffect, useState } from 'react';
 import { ReplayPlayback } from '@/app/(main)/websites/[websiteId]/replays/[replayId]/ReplayPlayback';
+import { ControlledDialog } from '@/components/common/ControlledDialog';
 import { useNavigation } from '@/components/hooks';
 import { buildPath } from '@/lib/url';
+import type { ReplaySource } from '@/store/replays';
 import styles from './ReplayModal.module.css';
 
 export interface ReplayModalProps extends ModalProps {
   websiteId: string;
   replayId?: string;
+  replaySource?: ReplaySource;
 }
 
-export function ReplayModal({ websiteId, replayId, className, ...props }: ReplayModalProps) {
+export function ReplayModal({ websiteId, replayId, replaySource, className, ...props }: ReplayModalProps) {
   const {
     router,
     query: { replay },
@@ -18,7 +22,21 @@ export function ReplayModal({ websiteId, replayId, className, ...props }: Replay
     updateParams,
   } = useNavigation();
   const activeReplayId = replayId || replay;
-  const modalClassName = [styles.modal, className].filter(Boolean).join(' ');
+  const [replayOrientation, setReplayOrientation] = useState<'portrait' | 'landscape' | null>(null);
+
+  useEffect(() => {
+    if (activeReplayId) {
+      setReplayOrientation(null);
+    }
+  }, [activeReplayId]);
+
+  const modalClassName = [
+    styles.modal,
+    replayOrientation === 'portrait' ? styles.portrait : null,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -34,26 +52,31 @@ export function ReplayModal({ websiteId, replayId, className, ...props }: Replay
   };
 
   return (
-    <Modal
-      {...props}
-      placement="bottom"
-      offset="80px"
-      className={modalClassName}
-      isOpen={!!activeReplayId}
-      onOpenChange={handleOpenChange}
-      isDismissable
-    >
-      <Column height="100%">
-        <Dialog variant="sheet" className={styles.sheet}>
-          {({ close }) => (
-            <Column padding="6">
-              {activeReplayId && (
-                <ReplayPlayback websiteId={websiteId} replayId={activeReplayId} onClose={close} />
-              )}
-            </Column>
-          )}
-        </Dialog>
-      </Column>
-    </Modal>
+    <ControlledDialog>
+      <Modal
+        {...props}
+        className={modalClassName}
+        isOpen={!!activeReplayId}
+        onOpenChange={handleOpenChange}
+      >
+        <Column height="100%">
+          <Dialog className="h-full rounded-lg">
+            {({ close }) => (
+              <Column padding="6">
+                {activeReplayId && (
+                  <ReplayPlayback
+                    websiteId={websiteId}
+                    replayId={activeReplayId}
+                    replaySource={replaySource}
+                    onClose={close}
+                    onReplayStateChange={setReplayOrientation}
+                  />
+                )}
+              </Column>
+            )}
+          </Dialog>
+        </Column>
+      </Modal>
+    </ControlledDialog>
   );
 }

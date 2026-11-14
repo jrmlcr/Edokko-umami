@@ -7,10 +7,11 @@ import {
   Modal,
 } from '@umami/react-zen';
 import type { CSSProperties, ReactNode } from 'react';
+import { ControlledDialog } from '@/components/common/ControlledDialog';
 import { IconLabel } from '@/components/common/IconLabel';
 import { useMobile } from '@/components/hooks';
 
-export interface DialogButtonProps extends Omit<ButtonProps, 'children'> {
+export interface DialogButtonProps extends Omit<ButtonProps, 'children' | 'title'> {
   icon?: ReactNode;
   label?: ReactNode;
   title?: ReactNode;
@@ -18,6 +19,7 @@ export interface DialogButtonProps extends Omit<ButtonProps, 'children'> {
   height?: string;
   minWidth?: string;
   minHeight?: string;
+  dialogClassName?: string;
   isOpen?: boolean;
   onOpenChange?: (isOpen: boolean) => void;
   children?: DialogProps['children'];
@@ -31,6 +33,7 @@ export function DialogButton({
   height,
   minWidth,
   minHeight,
+  dialogClassName,
   isOpen,
   onOpenChange,
   children,
@@ -57,25 +60,22 @@ export function DialogButton({
   }
 
   const dialog = (
-    <Dialog
-      variant={isMobile ? 'sheet' : undefined}
-      title={title === undefined ? label : title}
-      style={style}
-    >
+    <Dialog title={title === undefined ? label : title} className={dialogClassName} style={style}>
       {children}
     </Dialog>
   );
 
   if (isOpen !== undefined) {
     return (
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        isDismissable
-        placement={isMobile ? 'fullscreen' : 'center'}
-      >
-        {dialog}
-      </Modal>
+      <ControlledDialog>
+        <Modal
+          isOpen={isOpen}
+          onOpenChange={onOpenChange}
+          placement={isMobile ? 'fullscreen' : 'center'}
+        >
+          {dialog}
+        </Modal>
+      </ControlledDialog>
     );
   }
 

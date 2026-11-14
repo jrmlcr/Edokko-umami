@@ -1,15 +1,7 @@
-import {
-  Button,
-  Dialog,
-  DialogTrigger,
-  Icon,
-  Modal,
-  Row,
-  Text,
-  Tooltip,
-  TooltipTrigger,
-} from '@umami/react-zen';
+import { Button, Dialog, Icon, Modal, Row, Text, Tooltip, TooltipTrigger } from '@umami/react-zen';
+import { useState } from 'react';
 import { SegmentEditForm } from '@/app/(main)/websites/[websiteId]/segments/SegmentEditForm';
+import { ControlledDialog } from '@/components/common/ControlledDialog';
 import {
   useFilters,
   useFormat,
@@ -19,23 +11,28 @@ import {
   useWebsiteSegmentQuery,
 } from '@/components/hooks';
 import { Bookmark, X } from '@/components/icons';
-import { isSearchOperator } from '@/lib/params';
+import {
+  isSearchOperator,
+  serializeSessionPropertyFilters,
+  serializeUniversalEventPropertyFilters,
+} from '@/lib/params';
 
 export function FilterBar({ websiteId }: { websiteId?: string }) {
   const { t, labels } = useMessages();
   const { isMobile } = useMobile();
   const { formatValue } = useFormat();
-  const {
-    router,
-    pathname,
-    updateParams,
-    replaceParams,
-    query: { segment, cohort },
-  } = useNavigation();
-  const { filters, operatorLabels } = useFilters();
+  const { router, pathname, updateParams, replaceParams, query } = useNavigation();
+  const { segment, cohort } = query;
+  const { filters, eventPropertyFilters, sessionPropertyFilters, operatorLabels } = useFilters();
   const { data, isLoading } = useWebsiteSegmentQuery(websiteId, segment || cohort);
+  const [showSaveSegment, setShowSaveSegment] = useState(false);
   const canSaveSegment =
-    !!websiteId && filters.length > 0 && !segment && !cohort && !pathname.includes('/share');
+    !!websiteId &&
+    (filters.length > 0 || sessionPropertyFilters.length > 0) &&
+    eventPropertyFilters.length === 0 &&
+    !segment &&
+    !cohort &&
+    !pathname.includes('/share');
 
   const handleCloseFilter = (param: string) => {
     router.push(updateParams({ [param]: undefined }));
@@ -45,11 +42,49 @@ export function FilterBar({ websiteId }: { websiteId?: string }) {
     router.push(replaceParams());
   };
 
+  const handleSessionPropertyFilterRemove = (index: number) => {
+    const clearedSessionPropertyFilters = Object.fromEntries(
+      Object.keys(query)
+        .filter(key => /^spf\d+$/.test(key))
+        .map(key => [key, undefined]),
+    );
+    const nextSessionPropertyFilters = sessionPropertyFilters.filter((_, i) => i !== index);
+
+    router.push(
+      updateParams({
+        ...clearedSessionPropertyFilters,
+        ...serializeSessionPropertyFilters(nextSessionPropertyFilters),
+      }),
+    );
+  };
+
+  const handleEventPropertyFilterRemove = (index: number) => {
+    const clearedEventPropertyFilters = Object.fromEntries(
+      Object.keys(query)
+        .filter(key => /^epf\d+$/.test(key))
+        .map(key => [key, undefined]),
+    );
+    const nextEventPropertyFilters = eventPropertyFilters.filter((_, i) => i !== index);
+
+    router.push(
+      updateParams({
+        ...clearedEventPropertyFilters,
+        ...serializeUniversalEventPropertyFilters(nextEventPropertyFilters),
+      }),
+    );
+  };
+
   const handleSegmentRemove = (type: string) => {
     router.push(updateParams({ [type]: undefined }));
   };
 
-  if (!filters.length && !segment && !cohort) {
+  if (
+    !filters.length &&
+    !eventPropertyFilters.length &&
+    !sessionPropertyFilters.length &&
+    !segment &&
+    !cohort
+  ) {
     return null;
   }
 
@@ -101,24 +136,52 @@ export function FilterBar({ websiteId }: { websiteId?: string }) {
             />
           );
         })}
+        {eventPropertyFilters.map((filter, index) => (
+          <FilterItem
+            key={`epf${index}`}
+            name={`epf${index}`}
+            label={`${t(labels.eventProperties)}: ${filter.propertyName}`}
+            operator={operatorLabels[filter.operator]}
+            value={filter.value}
+            onRemove={() => handleEventPropertyFilterRemove(index)}
+          />
+        ))}
+        {sessionPropertyFilters.map((filter, index) => (
+          <FilterItem
+            key={`spf${index}`}
+            name={`spf${index}`}
+            label={`${t(labels.sessionData)}: ${filter.propertyName}`}
+            operator={operatorLabels[filter.operator]}
+            value={filter.value}
+            onRemove={() => handleSessionPropertyFilterRemove(index)}
+          />
+        ))}
       </Row>
       <Row alignItems="center">
-        <DialogTrigger>
-          {canSaveSegment && (
-            <TooltipTrigger delay={0}>
-              <Button variant="zero">
-                <Icon>
-                  <Bookmark />
-                </Icon>
-              </Button>
-              <Tooltip>
-                <Text>{t(labels.saveSegment)}</Text>
-              </Tooltip>
-            </TooltipTrigger>
-          )}
-          <Modal placement={isMobile ? 'fullscreen' : 'center'}>
+        {canSaveSegment && (
+          <TooltipTrigger delay={0}>
+            <Button
+              variant="zero"
+              aria-label={t(labels.saveSegment)}
+              onPress={() => setShowSaveSegment(true)}
+            >
+              <Icon>
+                <Bookmark />
+              </Icon>
+            </Button>
+            <Tooltip>
+              <Text>{t(labels.saveSegment)}</Text>
+            </Tooltip>
+          </TooltipTrigger>
+        )}
+        {/* Controlled rather than a DialogTrigger: TooltipTrigger does not forward the trigger's click handler. */}
+        <ControlledDialog>
+          <Modal
+            placement={isMobile ? 'fullscreen' : 'center'}
+            isOpen={showSaveSegment}
+            onOpenChange={setShowSaveSegment}
+          >
             <Dialog
-              variant={isMobile ? 'sheet' : undefined}
               title={t(labels.segment)}
               style={{
                 width: isMobile ? '100%' : '800px',
@@ -130,11 +193,18 @@ export function FilterBar({ websiteId }: { websiteId?: string }) {
               }}
             >
               {({ close }) => {
-                return <SegmentEditForm websiteId={websiteId} onClose={close} filters={filters} />;
+                return (
+                  <SegmentEditForm
+                    websiteId={websiteId}
+                    onClose={close}
+                    filters={filters}
+                    sessionPropertyFilters={sessionPropertyFilters}
+                  />
+                );
               }}
             </Dialog>
           </Modal>
-        </DialogTrigger>
+        </ControlledDialog>
         <TooltipTrigger delay={0}>
           <Button variant="zero" onPress={handleResetFilter}>
             <Icon>

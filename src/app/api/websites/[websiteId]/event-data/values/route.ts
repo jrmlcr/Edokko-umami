@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { getQueryFilters, parseRequest } from '@/lib/request';
 import { json, unauthorized } from '@/lib/response';
-import { filterParams } from '@/lib/schema';
+import { filterParams, withPeriodDateRange } from '@/lib/schema';
 import { canViewWebsiteSection } from '@/permissions';
 import { getEventDataValues } from '@/queries/sql';
 
@@ -9,10 +9,10 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ websiteId: string }> },
 ) {
-  const schema = z.object({
+  const schema = withPeriodDateRange({
     startAt: z.coerce.number().int(),
     endAt: z.coerce.number().int(),
-    event: z.string(),
+    eventName: z.string().optional(),
     propertyName: z.string(),
     dataType: z.coerce.number().int().optional(),
     ...filterParams,
@@ -30,7 +30,7 @@ export async function GET(
     return unauthorized();
   }
 
-  const { event: eventName, propertyName, dataType } = query;
+  const { eventName, propertyName, dataType } = query;
   const filters = await getQueryFilters(query, websiteId);
 
   const data = await getEventDataValues(websiteId, eventName, {

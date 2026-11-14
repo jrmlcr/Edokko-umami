@@ -92,9 +92,9 @@ export function Revenue({ websiteId, startDate, endDate, unit }: RevenueProps) {
               <Row justifyContent="end">
                 <Select
                   value={revenueChartMode}
-                  onChange={handleRevenueChartModeChange}
-                  popoverProps={{ placement: 'bottom right' }}
-                  style={{ width: 140 }}
+                  onChange={value => handleRevenueChartModeChange(value as RevenueChartMode)}
+                  popoverProps={{ side: 'bottom', align: 'end' }}
+                  buttonProps={{ style: { width: 140 } }}
                 >
                   <ListItem id="period">{t(labels.period)}</ListItem>
                   <ListItem id="cumulative">{t(labels.cumulative)}</ListItem>
@@ -107,6 +107,7 @@ export function Revenue({ websiteId, startDate, endDate, unit }: RevenueProps) {
                 minDate={startDate}
                 maxDate={endDate}
                 currency={currency}
+                allowBarDrill={true}
               />
             </Panel>
             <Grid gap="3">

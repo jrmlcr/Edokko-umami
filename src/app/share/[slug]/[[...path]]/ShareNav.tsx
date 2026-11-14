@@ -1,7 +1,6 @@
 import {
   Button,
   Column,
-  Focusable,
   Icon,
   Row,
   Text,
@@ -65,18 +64,6 @@ export function ShareNav({
           path: renderPath('/sessions'),
         },
         {
-          id: 'realtime',
-          label: t(labels.realtime),
-          icon: <Clock />,
-          path: renderPath('/realtime'),
-        },
-        {
-          id: 'performance',
-          label: t(labels.performance),
-          icon: <Gauge />,
-          path: renderPath('/performance'),
-        },
-        {
           id: 'compare',
           label: t(labels.compare),
           icon: <AlignEndHorizontal />,
@@ -121,6 +108,24 @@ export function ShareNav({
           label: t(labels.attribution),
           icon: <Network />,
           path: renderPath('/attribution'),
+        },
+      ],
+    },
+    {
+      section: 'monitoring',
+      label: t(labels.monitoring),
+      items: [
+        {
+          id: 'realtime',
+          label: t(labels.realtime),
+          icon: <Clock />,
+          path: renderPath('/realtime'),
+        },
+        {
+          id: 'performance',
+          label: t(labels.performance),
+          icon: <Gauge />,
+          path: renderPath('/performance'),
         },
       ],
     },
@@ -169,7 +174,7 @@ export function ShareNav({
         {items.map(({ label: sectionLabel, items: sectionItems }, index) => (
           <Column key={`${sectionLabel}${index}`} gap="1" marginBottom="1">
             {!collapsed && (
-              <Row padding>
+              <Row paddingX="3" marginTop="2">
                 <Text weight="bold">{sectionLabel}</Text>
               </Row>
             )}
@@ -177,26 +182,37 @@ export function ShareNav({
               const isSelected = selectedKey === id;
               return (
                 <Link key={id} href={path} role="button" onClick={onItemClick}>
-                  <TooltipTrigger isDisabled={!collapsed} delay={0}>
-                    <Focusable>
+                  {collapsed ? (
+                    <TooltipTrigger delay={0}>
                       <Row
+                        tabIndex={0}
                         alignItems="center"
-                        justifyContent={collapsed ? 'center' : undefined}
+                        justifyContent="center"
                         hover={{ backgroundColor: 'surface-sunken' }}
                         backgroundColor={isSelected ? 'surface-sunken' : undefined}
                         borderRadius
                         minHeight="40px"
                       >
-                        <IconLabel
-                          icon={icon}
-                          label={collapsed ? '' : label}
-                          weight={isSelected ? 'bold' : undefined}
-                          {...(!collapsed && { padding: true })}
-                        />
+                        <IconLabel icon={icon} label="" weight={isSelected ? 'bold' : undefined} />
                       </Row>
-                    </Focusable>
-                    <Tooltip placement="right">{label}</Tooltip>
-                  </TooltipTrigger>
+                      <Tooltip placement="right">{label}</Tooltip>
+                    </TooltipTrigger>
+                  ) : (
+                    <Row
+                      alignItems="center"
+                      hover={{ backgroundColor: 'surface-sunken' }}
+                      backgroundColor={isSelected ? 'surface-sunken' : undefined}
+                      borderRadius
+                      minHeight="40px"
+                    >
+                      <IconLabel
+                        icon={icon}
+                        label={label}
+                        weight={isSelected ? 'bold' : undefined}
+                        padding
+                      />
+                    </Row>
+                  )}
                 </Link>
               );
             })}
